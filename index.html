@@ -15,15 +15,15 @@
 
     header h1 { margin: 0 0 10px 0; }
 
-    /* Table base */
-    #table {
+    /* Table base (applies to both tables) */
+    table {
       border-collapse: collapse;
       width: 100%;
       max-width: 760px;
       margin-bottom: 14px;
     }
 
-    #table tr, #table th, #table td {
+    table tr, table th, table td {
       border: 1px solid black;
       padding: 10px;
       text-align: center;
@@ -68,26 +68,28 @@
 
     /* Responsive: stack table like cards on mobile */
     @media (max-width: 650px) {
-      /* Hide header row */
-      #table tr:first-child { display: none; }
+      /* Hide header row for both tables */
+      #ddrTable tr:first-child,
+      #sizeTable tr:first-child { display: none; }
 
-      #table, #table tbody, #table tr, #table td {
+      #ddrTable, #ddrTable tbody, #ddrTable tr, #ddrTable td,
+      #sizeTable, #sizeTable tbody, #sizeTable tr, #sizeTable td {
         display: block;
         width: 100%;
       }
 
-      #table tr {
+      #ddrTable tr, #sizeTable tr {
         margin-bottom: 12px;
         border: 1px solid black;
       }
 
-      #table td {
+      #ddrTable td, #sizeTable td {
         text-align: right;
         position: relative;
         padding-left: 55%;
       }
 
-      #table td::before {
+      #ddrTable td::before, #sizeTable td::before {
         content: attr(data-label);
         position: absolute;
         left: 10px;
@@ -111,23 +113,7 @@
 
   <!-- DDR TYPE TABLE -->
   <h3>1) Choose DDR Type</h3>
-  <table id="ddrTable">
-    <tr>
-      <th>Type</th>
-      <th>Size</th>
-    </tr>
-  </table>
-
-  <!-- SIZE TABLE -->
-  <h3>2) Choose Size (GB)</h3>
-  <table id="sizeTable">
-    <tr>
-      <th>4</th>
-      <th>8</th>
-      <th>16</th>
-      <th>32</th>
-      <th>64</th>
-    </tr>
+  <table id="ddrTable" aria-label="Choose DDR type">
     <tr>
       <th>DDR</th>
       <th>DDR2</th>
@@ -137,8 +123,20 @@
     </tr>
   </table>
 
+  <!-- SIZE TABLE -->
+  <h3>2) Choose Size (GB)</h3>
+  <table id="sizeTable" aria-label="Choose RAM size">
+    <tr>
+      <th>4</th>
+      <th>8</th>
+      <th>16</th>
+      <th>32</th>
+      <th>64</th>
+    </tr>
+  </table>
+
   <p id="choiceMsg" style="margin-top:16px;"></p>
-  <a id="downloadBtn" href="#" role="button">Continue & download the RAM</a>
+  <a id="downloadBtn" href="#" role="button">Continue &amp; download the RAM</a>
 
   <script>
     // --- Helpers ---
@@ -160,12 +158,14 @@
         td.setAttribute(dataAttr, value);
         td.setAttribute("data-label", dataLabel);
         td.title = `Click to choose ${value}`;
-        // make keyboard-accessible
+        // keyboard-accessible
         td.setAttribute("role", "button");
         td.setAttribute("tabindex", "0");
         tr.appendChild(td);
       });
 
+      // replace only the header row(s) with the new clickable row
+      // this is safe because we expect only the header row to exist initially
       table.innerHTML = "";
       table.appendChild(tr);
     }
@@ -206,9 +206,7 @@
       function makeSelectable(nodeList, attrName, onSelect) {
         nodeList.forEach(td => {
           // click
-          td.addEventListener("click", () => {
-            onSelect(td);
-          });
+          td.addEventListener("click", () => onSelect(td));
           // keyboard (Enter/Space)
           td.addEventListener("keydown", (e) => {
             if (e.key === "Enter" || e.key === " ") {
