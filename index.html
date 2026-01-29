@@ -13,15 +13,14 @@
       line-height: 1.4;
     }
 
-    header h1 {
-      margin: 0 0 10px 0;
-    }
+    header h1 { margin: 0 0 10px 0; }
 
     /* Table base */
     #table {
       border-collapse: collapse;
       width: 100%;
-      max-width: 700px;
+      max-width: 760px;
+      margin-bottom: 14px;
     }
 
     #table tr, #table th, #table td {
@@ -53,16 +52,18 @@
       width: fit-content;
     }
 
-    #downloadBtn:hover {
-      background: #f2f2f2;
+    #downloadBtn:hover { background: #f2f2f2; }
+
+    /* Optional: little helper text */
+    #hint {
+      margin: 6px 0 14px 0;
+      opacity: 0.85;
     }
 
     /* Responsive: stack table like cards on mobile */
-    @media (max-width: 600px) {
+    @media (max-width: 650px) {
       /* Hide header row */
-      #table tr:first-child {
-        display: none;
-      }
+      #table tr:first-child { display: none; }
 
       #table, #table tbody, #table tr, #table td {
         display: block;
@@ -77,7 +78,7 @@
       #table td {
         text-align: right;
         position: relative;
-        padding-left: 50%;
+        padding-left: 55%;
       }
 
       #table td::before {
@@ -85,7 +86,7 @@
         position: absolute;
         left: 10px;
         top: 10px;
-        width: 45%;
+        width: 50%;
         text-align: left;
         font-weight: 700;
       }
@@ -99,9 +100,12 @@
     <p><b>Warning:</b> This website is 100% legit and totally real.</p>
   </header>
 
-  <h2>Choose your RAM size for download</h2>
+  <h2>Choose your DDR and RAM size for download</h2>
+  <p id="hint">Step 1: click a DDR type. Step 2: click a size. Then download (real).</p>
 
-  <table id="table">
+  <!-- DDR TYPE TABLE -->
+  <h3>1) Choose DDR Type</h3>
+  <table id="ddrTable">
     <tr>
       <th>DDR</th>
       <th>DDR2</th>
@@ -109,12 +113,17 @@
       <th>DDR4</th>
       <th>DDR5</th>
     </tr>
+  </table>
+
+  <!-- SIZE TABLE -->
+  <h3>2) Choose Size (GB)</h3>
+  <table id="sizeTable">
     <tr>
-      <td>4</td>
-      <td>8</td>
-      <td>16</td>
-      <td>32</td>
-      <td>64</td>
+      <th>4</th>
+      <th>8</th>
+      <th>16</th>
+      <th>32</th>
+      <th>64</th>
     </tr>
   </table>
 
@@ -122,64 +131,114 @@
   <a id="downloadBtn" href="#">Continue & download the RAM</a>
 
   <script>
-    // Add data-labels to each TD using the TH text above it (for mobile stacked view)
-    (function addResponsiveLabels() {
-      const table = document.getElementById("table");
-      if (!table) return;
+    // --- Helpers ---
+    function clearSelected(nodeList) {
+      nodeList.forEach(el => el.classList.remove("selected"));
+    }
 
-      const headerCells = table.querySelectorAll("tr:first-child th");
-      const dataRow = table.querySelectorAll("tr")[1]; // second row with numbers
-      if (!headerCells.length || !dataRow) return;
+    // --- Build clickable DDR cells from header text ---
+    (function makeDDRClickable() {
+      const ddrTable = document.getElementById("ddrTable");
+      if (!ddrTable) return;
 
-      const tds = dataRow.querySelectorAll("td");
-      tds.forEach((td, i) => {
-        const label = headerCells[i]?.textContent?.trim() || `Col ${i + 1}`;
-        td.setAttribute("data-label", label);
+      const ths = ddrTable.querySelectorAll("th");
+      // Replace the header row with a clickable TD row (keeps it simple & consistent)
+      const tr = document.createElement("tr");
+
+      ths.forEach((th) => {
+        const td = document.createElement("td");
+        const label = th.textContent.trim();
+        td.textContent = label;
         td.setAttribute("data-ddr", label);
-        td.setAttribute("data-size", td.textContent.trim());
-        td.title = `Click to download ${label} ${td.textContent.trim()}GB (real)`;
+        td.setAttribute("data-label", "DDR Type");
+        td.title = `Click to choose ${label}`;
+        tr.appendChild(td);
       });
+
+      // Clear existing rows and append the clickable row
+      ddrTable.innerHTML = "";
+      ddrTable.appendChild(tr);
     })();
 
-    // Click handler: choose a cell and show meme message + "continue" button
-    (function enableRamChoosing() {
-      const table = document.getElementById("table");
+    // --- Build clickable size cells from header text ---
+    (function makeSizeClickable() {
+      const sizeTable = document.getElementById("sizeTable");
+      if (!sizeTable) return;
+
+      const ths = sizeTable.querySelectorAll("th");
+      const tr = document.createElement("tr");
+
+      ths.forEach((th) => {
+        const td = document.createElement("td");
+        const size = th.textContent.trim();
+        td.textContent = size;
+        td.setAttribute("data-size", size);
+        td.setAttribute("data-label", "Size (GB)");
+        td.title = `Click to choose ${size}GB`;
+        tr.appendChild(td);
+      });
+
+      sizeTable.innerHTML = "";
+      sizeTable.appendChild(tr);
+    })();
+
+    // --- Selection + UI logic ---
+    (function enableChoosing() {
+      const ddrCells = document.querySelectorAll("#ddrTable td");
+      const sizeCells = document.querySelectorAll("#sizeTable td");
       const msg = document.getElementById("choiceMsg");
       const btn = document.getElementById("downloadBtn");
-      if (!table || !msg || !btn) return;
 
-      const tds = table.querySelectorAll("tr:nth-child(2) td");
+      let chosenDDR = null;
+      let chosenSize = null;
 
-      function clearSelected() {
-        tds.forEach(td => td.classList.remove("selected"));
+      function updateUI() {
+        if (chosenDDR && chosenSize) {
+          msg.textContent =
+            `You have chosen ${chosenSize}GB of ${chosenDDR} RAM for download. ` +
+            `Please press here to continue and download the RAM.`;
+          btn.style.display = "inline-block";
+          btn.href = `#download-${encodeURIComponent(chosenDDR)}-${encodeURIComponent(chosenSize)}GB`;
+        } else if (chosenDDR && !chosenSize) {
+          msg.textContent = `Chosen DDR: ${chosenDDR}. Now pick a size.`;
+          btn.style.display = "none";
+        } else if (!chosenDDR && chosenSize) {
+          msg.textContent = `Chosen Size: ${chosenSize}GB. Now pick a DDR type.`;
+          btn.style.display = "none";
+        } else {
+          msg.textContent = "";
+          btn.style.display = "none";
+        }
       }
 
-      tds.forEach(td => {
+      ddrCells.forEach(td => {
         td.addEventListener("click", () => {
-          clearSelected();
+          clearSelected(ddrCells);
           td.classList.add("selected");
-
-          const ddr = td.getAttribute("data-ddr") || "DDR?";
-          const size = td.getAttribute("data-size") || td.textContent.trim();
-
-          msg.textContent =
-            `You have chosen ${size}GB of ${ddr} RAM for download. ` +
-            `Please press here to continue and download the RAM.`;
-
-          btn.style.display = "inline-block";
-
-          // Meme "download" target — change to any page you want
-          btn.href = `#download-${encodeURIComponent(ddr)}-${encodeURIComponent(size)}GB`;
+          chosenDDR = td.getAttribute("data-ddr");
+          updateUI();
         });
       });
 
-      // Optional: clicking the "download" button shows an alert (meme)
+      sizeCells.forEach(td => {
+        td.addEventListener("click", () => {
+          clearSelected(sizeCells);
+          td.classList.add("selected");
+          chosenSize = td.getAttribute("data-size");
+          updateUI();
+        });
+      });
+
       btn.addEventListener("click", (e) => {
         e.preventDefault();
-        alert("Downloading RAM... ✅✅✅\n\n");
+        alert(
+          `Downloading ${chosenSize}GB of ${chosenDDR} RAM... ✅✅✅\n\n` +
+          `(Just kidding. Go buy a stick on Willhaben.)`
+        );
       });
+
+      updateUI();
     })();
   </script>
 </body>
 </html>
-
